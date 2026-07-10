@@ -9,7 +9,7 @@ Quick facts:
   the same-seed determinism test must never break.
 - Sim (`src/sim/`) is DOM-free; UI (`src/ui/`) never mutates world state directly.
 - Full sim spec: [docs/SIMULATION.md](docs/SIMULATION.md). Design language of the three
-  themes: [docs/DESIGNS.md](docs/DESIGNS.md). Board: [PROJECT_BOARD.md](PROJECT_BOARD.md).
+  themes: [docs/DESIGNS.md](docs/DESIGNS.md). Board: [protocol/BOARD.md](protocol/BOARD.md).
 ## Protocol
 This project runs under protocol-os (global skill). At session start read protocol/PROTOCOL.md,
 then the active workstream's NEXT_STEP.md, verify state, then work. Iron Rules apply.

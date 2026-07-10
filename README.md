@@ -61,7 +61,7 @@ See [docs/DESIGNS.md](docs/DESIGNS.md) for the full design language of each.
 | [docs/SIMULATION.md](docs/SIMULATION.md) | Full simulation spec: systems, tick order, formulas, language & myth models |
 | [docs/DESIGNS.md](docs/DESIGNS.md) | The three visual designs and the shared interaction grammar |
 | [memory/](memory/) | The project brain (Second Brain Protocol): state, decisions, log |
-| [PROJECT_BOARD.md](PROJECT_BOARD.md) | Protocol OS board: workstreams and status |
+| [protocol/BOARD.md](protocol/BOARD.md) | Protocol OS board: workstreams and status |
 
 ## Architecture in one paragraph
 
