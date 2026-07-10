@@ -111,14 +111,8 @@ function witnesses(world: World, tribeIds: readonly number[], agentIds: readonly
 export function emit(world: World, kind: EventKind, partial: EmitPartial = {}): WorldEvent {
   const tribeIds = (partial.tribeIds ?? []).slice();
   const agentIds = (partial.agentIds ?? []).slice();
-  let seenKind = false;
-  for (let i = 0; i < world.events.length; i++) {
-    if (world.events[i].kind === kind) {
-      seenKind = true;
-      break;
-    }
-  }
-  const novelty = seenKind ? 1 : 1.75;
+  const novelty = world.caches.seenKinds.has(kind) ? 1 : 1.75;
+  world.caches.seenKinds.add(kind);
   const salience = EVENT_BASE_WEIGHT[kind] * eventScale(partial) * novelty *
     renownMultiplier(world, agentIds);
   const event: WorldEvent = {

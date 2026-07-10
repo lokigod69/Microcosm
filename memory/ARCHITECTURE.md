@@ -45,5 +45,9 @@ User input → SimController (pause/speed/seed/select) → engine or UI state on
 - All events are typed members of the `WorldEvent` union with `tick`, `kind`, `salience` inputs.
 - IDs are numeric, allocated from World counters; names are always generated from a
   tribe's phonology (never hardcoded English names for in-world things).
+- `World.caches` holds incremental derivations of the append-only event log
+  (culture-shock cursor, traded/allied pairs, active plagues, seen event kinds) so
+  per-tick systems never rescan the whole log; every cache is updated at the same
+  deterministic sites that emit the corresponding events.
 - Tests live in test/, run with vitest; the determinism test (same seed twice → identical
   event log hash) must always pass.

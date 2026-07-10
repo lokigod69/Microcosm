@@ -224,7 +224,7 @@ export function observerFor(world: World, event: WorldEvent, repeats: number): s
       line = `The settlement ${placeName(world, event) ?? loc} grew to ${str(event, "tier", "a larger tier")}.`;
       break;
     case "settlement.sacked":
-      line = `A settlement of the ${tribe} was sacked; recorded casualties: ${num(event, "casualties", 0)}.`;
+      line = `The settlement ${str(event, "settlement", "of the " + tribeName(world, event.tribeIds[1]))} was sacked by the ${tribeName(world, event.tribeIds[0])}.`;
       break;
     case "discovery":
       line = pick([
@@ -233,7 +233,7 @@ export function observerFor(world: World, event: WorldEvent, repeats: number): s
       ]);
       break;
     case "tech.spread":
-      line = `${cap(str(event, "tech", "a technique"))} passed from the ${tribeName(world, event.tribeIds[1])} to the ${tribeName(world, event.tribeIds[0])} through contact.`;
+      line = `${cap(str(event, "tech", "a technique"))} passed from the ${tribeName(world, event.tribeIds[0])} to the ${tribeName(world, event.tribeIds[1])} through contact.`;
       break;
     case "war.start":
       line = `Hostilities opened between the ${tribeName(world, event.tribeIds[0])} and the ${tribeName(world, event.tribeIds[1])}.`;
@@ -415,11 +415,20 @@ export function mythFor(
       return pick([
         `the creeping death grew thin and left. Those who remained of the ${people} washed in the river and did not speak of it for a year.`,
       ]);
-    case "war.start":
-      return pick([
-        `the ${people} took up ${w("war", "spear-time")} against ${tribeName(world, event.tribeIds[1])}. The old ones spat; the young ones sharpened.`,
+    case "war.start": {
+      // when the lens tribe is a belligerent, its foe is the other side; a
+      // bystander lens narrates both parties by name instead
+      const foeId = tribe !== undefined && event.tribeIds[1] === tribe.id
+        ? event.tribeIds[0]
+        : event.tribeIds[1];
+      const variants = tribe !== undefined && event.tribeIds.includes(tribe.id)
+        ? [`the ${people} took up ${w("war", "spear-time")} against ${tribeName(world, foeId)}. The old ones spat; the young ones sharpened.`]
+        : [];
+      variants.push(
         `between ${tribeName(world, event.tribeIds[0])} and ${tribeName(world, event.tribeIds[1])} a debt was opened that only ${w("war", "spear-time")} could count.`,
-      ]);
+      );
+      return pick(variants);
+    }
     case "war.end":
       return pick([
         `the spears were laid down between ${tribeName(world, event.tribeIds[0])} and ${tribeName(world, event.tribeIds[1])}, and the dead were traded like beads until the count was even.`,
@@ -435,10 +444,14 @@ export function mythFor(
         `the ${people} drove the first post ${placeName(world, event) ? `and named the place ${placeName(world, event)}` : "into unclaimed ground"}. ${cap(cause)} was offered the first smoke.`,
         `here the wandering stopped: ${placeName(world, event) ?? "a nameless bend of country"}. The ${people} promised the ground they would stay, and mostly kept it.`,
       ]);
-    case "settlement.sacked":
+    case "settlement.sacked": {
+      const fallen = event.data["settlement"];
+      // the grief belongs to the defender (second id), never the sacker
+      const mourner = tribeName(world, event.tribeIds[1] ?? event.tribeIds[0]);
       return pick([
-        `where ${placeName(world, event) ?? "a home"} stood there is ash, and the ash remembers the ${people}. Let it be told plainly; grief needs no ornament.`,
+        `where ${typeof fallen === "string" ? fallen : "a home"} stood there is ash, and the ash remembers the ${mourner}. Let it be told plainly; grief needs no ornament.`,
       ]);
+    }
     case "tribe.formed":
       return pick([
         `the ${people} counted themselves and found they were a people. They took a name so the world would have something to call after them.`,

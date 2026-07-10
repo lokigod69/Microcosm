@@ -2,6 +2,7 @@
 // theme cycling, tab switching, and wiring renderer ↔ panels.
 
 import { createWorld, tickWorld } from "../sim/engine";
+import { fnv1a } from "../sim/rng";
 import type { World } from "../sim/types";
 import { formatDate } from "../sim/time";
 import { MapRenderer } from "./renderer";
@@ -106,7 +107,14 @@ export class App {
       seedInput.value = String(Math.floor(Math.random() * 100000));
     });
     document.getElementById("btn-begin")!.addEventListener("click", () => {
-      const seed = Number(seedInput.value.trim()) || 1;
+      // 0 is a valid seed; fractions/negatives normalize to a plain integer; any
+      // non-numeric text becomes a seed by hash so "Omeshzad" is a world too
+      const raw = seedInput.value.trim();
+      const parsed = Number(raw);
+      const seed = raw !== "" && Number.isFinite(parsed)
+        ? Math.abs(Math.trunc(parsed)) % 2147483647
+        : fnv1a(raw) % 2147483647;
+      seedInput.value = String(seed);
       this.begin(seed);
     });
     seedInput.addEventListener("keydown", (e) => {
@@ -136,6 +144,8 @@ export class App {
         this.togglePause();
       } else if (e.key >= "1" && e.key <= "4") {
         this.speed = [1, 4, 16, 60][Number(e.key) - 1];
+        this.paused = false;
+        this.updatePauseButton();
         this.updateSpeedButtons();
       } else if (e.key === "t" || e.key === "T") {
         this.cycleTheme();
@@ -164,6 +174,7 @@ export class App {
     this.renderer.setTheme(this.theme);
     this.panels.setTheme(this.theme);
     if (this.activeTab === "lexicon") this.panels.refreshLexicon();
+    this.panels.refreshInspect();
   }
 
   private switchTab(tab: string): void {

@@ -19,6 +19,31 @@ describe("emergent worlds", () => {
       expect(concepts).toBeGreaterThanOrEqual(30);
       expect(population).toBeGreaterThanOrEqual(30);
       expect(mythChapters.length).toBeGreaterThanOrEqual(3);
+
+      // invariants: bounded growth, finite in-range vitals, no dead kin acting,
+      // no chief serving a tribe they no longer belong to
+      expect(population).toBeLessThanOrEqual(2000);
+      for (const kin of world.kin.values()) {
+        if (!kin.alive) {
+          expect(kin.deathTick).not.toBeNull();
+          continue;
+        }
+        expect(kin.health).toBeGreaterThanOrEqual(0);
+        expect(kin.health).toBeLessThanOrEqual(1);
+        for (const need of Object.values(kin.needs)) {
+          expect(Number.isFinite(need)).toBe(true);
+          expect(need).toBeGreaterThanOrEqual(0);
+          expect(need).toBeLessThanOrEqual(1);
+        }
+        for (const gene of Object.values(kin.genome)) {
+          expect(Number.isFinite(gene)).toBe(true);
+        }
+      }
+      for (const tribe of world.tribes.values()) {
+        if (tribe.extinct || tribe.chiefId === null) continue;
+        const chief = world.kin.get(tribe.chiefId);
+        if (chief?.alive) expect(chief.tribeId).toBe(tribe.id);
+      }
     }, 30_000);
   }
 });

@@ -67,6 +67,11 @@ export class MapRenderer {
   private lastPY = 0;
   private tracker = new VelocityTracker();
   private movedSinceDown = 0;
+  private arrestedMomentum = false;
+  // raw (un-rubber-banded) drag position; banding always applies to this, never
+  // to an already-banded value, so resistance doesn't compound
+  private rawX = 0;
+  private rawY = 0;
 
   selection: Selection = null;
   onSelect: (sel: Selection) => void = () => {};
@@ -118,6 +123,15 @@ export class MapRenderer {
     const fit = Math.min(this.canvas.width / WORLD_W, this.canvas.height / WORLD_H);
     this.minScale = fit * 0.9;
     if (this.scale === WORLD_W || this.scale < this.minScale) this.scale = fit;
+    // shrinking the window can strand a previously legal camera outside the new
+    // bounds; pull it back in rather than showing void until the next gesture
+    if (!this.dragging) {
+      this.clampTargets();
+      if (reducedMotion()) {
+        this.camX.value = this.camX.target;
+        this.camY.value = this.camY.target;
+      }
+    }
   }
 
   private toScreen(wx: number, wy: number): [number, number] {
@@ -134,16 +148,22 @@ export class MapRenderer {
     ];
   }
 
-  private clampTargets(): void {
+  private bounds(): { minX: number; maxX: number; minY: number; maxY: number } {
     const halfW = this.canvas.width / 2 / this.scale;
     const halfH = this.canvas.height / 2 / this.scale;
     const pad = 6;
-    const minX = Math.min(halfW - pad, WORLD_W / 2);
-    const maxX = Math.max(WORLD_W - halfW + pad, WORLD_W / 2);
-    const minY = Math.min(halfH - pad, WORLD_H / 2);
-    const maxY = Math.max(WORLD_H - halfH + pad, WORLD_H / 2);
-    this.camX.setTarget(Math.max(minX, Math.min(maxX, this.camX.target)));
-    this.camY.setTarget(Math.max(minY, Math.min(maxY, this.camY.target)));
+    return {
+      minX: Math.min(halfW - pad, WORLD_W / 2),
+      maxX: Math.max(WORLD_W - halfW + pad, WORLD_W / 2),
+      minY: Math.min(halfH - pad, WORLD_H / 2),
+      maxY: Math.max(WORLD_H - halfH + pad, WORLD_H / 2),
+    };
+  }
+
+  private clampTargets(): void {
+    const b = this.bounds();
+    this.camX.setTarget(Math.max(b.minX, Math.min(b.maxX, this.camX.target)));
+    this.camY.setTarget(Math.max(b.minY, Math.min(b.maxY, this.camY.target)));
   }
 
   // ---------- input ----------
@@ -160,11 +180,16 @@ export class MapRenderer {
       this.movedSinceDown = 0;
       this.tracker.reset();
       this.tracker.add(e.clientX, e.clientY);
+      // a tap that arrests visible momentum is a stop, not a click
+      this.arrestedMomentum =
+        Math.abs(this.camX.velocity) + Math.abs(this.camY.velocity) > 1.5;
       // grab: kill momentum, follow the finger (interruptible always)
       this.camX.setTarget(this.camX.value);
       this.camY.setTarget(this.camY.value);
       this.camX.velocity = 0;
       this.camY.velocity = 0;
+      this.rawX = this.camX.value;
+      this.rawY = this.camY.value;
       c.classList.add("dragging");
     });
 
@@ -177,13 +202,17 @@ export class MapRenderer {
       this.movedSinceDown += Math.abs(dx) + Math.abs(dy);
       this.tracker.add(e.clientX, e.clientY);
 
-      let nx = this.camX.value - dx / this.scale;
-      let ny = this.camY.value - dy / this.scale;
-      // rubber-band beyond world bounds
-      if (nx < 0) nx = rubberband(nx, WORLD_W);
-      if (nx > WORLD_W) nx = WORLD_W + rubberband(nx - WORLD_W, WORLD_W);
-      if (ny < 0) ny = rubberband(ny, WORLD_H);
-      if (ny > WORLD_H) ny = WORLD_H + rubberband(ny - WORLD_H, WORLD_H);
+      this.rawX -= dx / this.scale;
+      this.rawY -= dy / this.scale;
+      // rubber-band beyond the same bounds the camera settles to, applied to the
+      // raw drag position so the resistance is stable while the finger is down
+      const b = this.bounds();
+      let nx = this.rawX;
+      let ny = this.rawY;
+      if (nx < b.minX) nx = b.minX + rubberband(nx - b.minX, WORLD_W);
+      else if (nx > b.maxX) nx = b.maxX + rubberband(nx - b.maxX, WORLD_W);
+      if (ny < b.minY) ny = b.minY + rubberband(ny - b.minY, WORLD_H);
+      else if (ny > b.maxY) ny = b.maxY + rubberband(ny - b.maxY, WORLD_H);
       this.camX.value = nx;
       this.camY.value = ny;
       this.camX.setTarget(nx);
@@ -195,11 +224,14 @@ export class MapRenderer {
       this.dragging = false;
       c.classList.remove("dragging");
       if (this.movedSinceDown < 6 * this.dpr) {
-        this.click(e);
+        if (!this.arrestedMomentum) this.click(e);
+        this.clampTargets();
         return;
       }
       if (reducedMotion()) {
         this.clampTargets();
+        this.camX.value = this.camX.target;
+        this.camY.value = this.camY.target;
         return;
       }
       // momentum: project the release velocity, then spring there
@@ -405,7 +437,7 @@ export class MapRenderer {
         }
       } else if (sel.kind === "settlement") {
         const s = world.settlements.get(sel.id);
-        if (s) {
+        if (s && !s.sacked) {
           px = s.x + 0.5;
           py = s.y + 0.5;
           pr = 0.8;

@@ -32,26 +32,9 @@ function orderedPair(a: number, b: number): [number, number] {
   return a < b ? [a, b] : [b, a];
 }
 
-function eventHasPair(eventTribes: readonly number[], a: number, b: number): boolean {
-  return eventTribes.includes(a) && eventTribes.includes(b);
-}
-
-function hasEver(world: World, kind: string, a: number, b: number): boolean {
-  for (let i = world.events.length - 1; i >= 0; i--) {
-    const event = world.events[i];
-    if (event.kind === kind && eventHasPair(event.tribeIds, a, b)) return true;
-  }
-  return false;
-}
-
-function allianceActive(world: World, a: number, b: number): boolean {
-  for (let i = world.events.length - 1; i >= 0; i--) {
-    const event = world.events[i];
-    if (!eventHasPair(event.tribeIds, a, b)) continue;
-    if (event.kind === "alliance.formed") return true;
-    if (event.kind === "alliance.broken") return false;
-  }
-  return false;
+function pairKey(a: number, b: number): string {
+  const [low, high] = orderedPair(a, b);
+  return `${low}:${high}`;
 }
 
 function relation(a: Tribe, b: Tribe): number {
@@ -102,6 +85,7 @@ function rangesOverlap(world: World, a: Tribe, b: Tribe): boolean {
 }
 
 function openTrade(world: World, a: Tribe, b: Tribe): void {
+  world.caches.tradedPairs.add(pairKey(a.id, b.id));
   changeRelation(a, b, 0.12);
   const aName = ensureAutonym(world, a);
   const bName = ensureAutonym(world, b);
@@ -216,12 +200,12 @@ function processWars(world: World): void {
       world.wars.splice(i, 1);
       continue;
     }
-    const attackerPop = livingMembers(world, attacker.id).length;
-    const defenderPop = livingMembers(world, defender.id).length;
-    if (attackerPop > 0 && world.streams.events.chance(0.006 + defender.culture.aggression * 0.003)) {
+    if (livingMembers(world, attacker.id).length > 0 &&
+        world.streams.events.chance(0.006 + defender.culture.aggression * 0.003)) {
       if (killInWar(world, attacker, war)) war.attackerLosses++;
     }
-    if (defenderPop > 0 && world.streams.events.chance(0.007 + attacker.culture.aggression * 0.004)) {
+    if (livingMembers(world, defender.id).length > 0 &&
+        world.streams.events.chance(0.007 + attacker.culture.aggression * 0.004)) {
       if (killInWar(world, defender, war)) war.defenderLosses++;
     }
     war.exhaustion = clamp(
@@ -229,10 +213,14 @@ function processWars(world: World): void {
       0,
       1,
     );
+    // Populations after today's casualties, so an annihilated side can never win.
+    const attackerPop = livingMembers(world, attacker.id).length;
+    const defenderPop = livingMembers(world, defender.id).length;
     const decisive = attackerPop === 0 || defenderPop === 0 ||
       (war.defenderLosses >= 4 && war.defenderLosses > war.attackerLosses * 2);
     if (!decisive && war.exhaustion < 1) continue;
     const attackerWon = attackerPop > 0 && (defenderPop === 0 || war.defenderLosses > war.attackerLosses);
+    const victor = attackerWon ? attacker.name : defenderPop > 0 ? defender.name : null;
     const sacked = attackerWon && sackSettlement(world, attacker, defender, war);
     emit(world, "war.end", {
       tribeIds: [attacker.id, defender.id],
@@ -242,7 +230,7 @@ function processWars(world: World): void {
         warId: war.id,
         attackerLosses: war.attackerLosses,
         defenderLosses: war.defenderLosses,
-        victor: attackerWon ? attacker.name : defender.name,
+        victor,
         sacked,
       },
     });
@@ -261,10 +249,11 @@ function processWars(world: World): void {
 
 function updatePairContact(world: World, a: Tribe, b: Tribe): void {
   if (!rangesOverlap(world, a, b)) return;
+  const key = pairKey(a.id, b.id);
   const warmth = (a.culture.openness + b.culture.openness) * 0.35 + relation(a, b) * 0.3;
   const hostility = (a.culture.aggression + b.culture.aggression) * 0.4 - warmth;
-  if (!hasEver(world, "trade.opened", a.id, b.id) && warmth >= hostility) openTrade(world, a, b);
-  const traded = hasEver(world, "trade.opened", a.id, b.id);
+  if (!world.caches.tradedPairs.has(key) && warmth >= hostility) openTrade(world, a, b);
+  const traded = world.caches.tradedPairs.has(key);
   if (traded && world.tick % 90 === (a.id * 31 + b.id * 17) % 90) {
     changeRelation(a, b, 0.006);
     if (world.streams.events.chance(0.45)) exchangeWord(world, a, b);
@@ -272,14 +261,16 @@ function updatePairContact(world: World, a: Tribe, b: Tribe): void {
   if (traded && relation(a, b) > 0.35 && world.tick % DAYS_PER_YEAR === (a.id + b.id * 7) % DAYS_PER_YEAR && world.streams.events.chance(0.2)) {
     intermarry(world, a, b);
   }
-  if (relation(a, b) > 0.62 && !allianceActive(world, a.id, b.id)) {
+  if (relation(a, b) > 0.62 && !world.caches.alliedPairs.has(key)) {
+    world.caches.alliedPairs.add(key);
     emit(world, "alliance.formed", {
       tribeIds: [a.id, b.id],
       agentIds: [],
       pos: null,
       data: { first: a.name, second: b.name },
     });
-  } else if (relation(a, b) < 0.05 && allianceActive(world, a.id, b.id)) {
+  } else if (relation(a, b) < 0.05 && world.caches.alliedPairs.has(key)) {
+    world.caches.alliedPairs.delete(key);
     emit(world, "alliance.broken", {
       tribeIds: [a.id, b.id],
       agentIds: [],
@@ -313,7 +304,7 @@ function beastEncounters(world: World): void {
         tribeIds: [kin.tribeId],
         agentIds: [kin.id],
         pos: { x, y },
-        data: { beast, victim: kin.name, survived: kin.health > 0 },
+        data: { beast, victim: kin.name, survived: kin.health > 0, casualties: kin.health > 0 ? 0 : 1 },
       });
     } else if ((biome === "coast" || biome === "ocean") && world.streams.events.chance(0.0000012)) {
       const tribe = world.tribes.get(kin.tribeId);
@@ -329,31 +320,23 @@ function beastEncounters(world: World): void {
   }
 }
 
-function latestPlagueStart(world: World, tribeId: number): number | null {
-  for (let i = world.events.length - 1; i >= 0; i--) {
-    const event = world.events[i];
-    if (!event.tribeIds.includes(tribeId)) continue;
-    if (event.kind === "plague.end") return null;
-    if (event.kind === "plague.start") return event.tick;
-  }
-  return null;
-}
-
 function updatePlagues(world: World, tribes: readonly Tribe[]): void {
   for (const tribe of tribes) {
     const people = livingMembers(world, tribe.id);
     if (people.length === 0) continue;
-    const started = latestPlagueStart(world, tribe.id);
-    if (started !== null) {
+    const plague = world.caches.plagues.get(tribe.id);
+    if (plague !== undefined) {
       for (const kin of people) {
         if (world.streams.events.chance(0.00022)) {
           killKin(world, kin, "plague");
+          plague.deaths++;
         }
       }
-      if (world.tick - started >= 50 && world.streams.events.chance(0.035)) {
+      if (world.tick - plague.start >= 50 && world.streams.events.chance(0.035)) {
+        world.caches.plagues.delete(tribe.id);
         emit(world, "plague.end", {
           tribeIds: [tribe.id], agentIds: [], pos: { x: tribe.homeX, y: tribe.homeY },
-          data: { duration: world.tick - started },
+          data: { duration: world.tick - plague.start, casualties: plague.deaths },
         });
       }
       continue;
@@ -362,6 +345,7 @@ function updatePlagues(world: World, tribes: readonly Tribe[]): void {
     for (const kin of people) food += kin.needs.food;
     const overcrowded = people.length > 48 || (tribe.settlementIds.length > 0 && people.length > 38);
     if (overcrowded && food / people.length < 0.42 && world.streams.events.chance(0.0008)) {
+      world.caches.plagues.set(tribe.id, { start: world.tick, deaths: 0 });
       emit(world, "plague.start", {
         tribeIds: [tribe.id], agentIds: [], pos: { x: tribe.homeX, y: tribe.homeY },
         data: { population: people.length },

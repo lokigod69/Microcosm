@@ -35,6 +35,9 @@ export class Panels {
     for (const el of [this.inspectEl, this.almanacEl, this.lexiconEl]) {
       el.addEventListener("click", (e) => this.handleLink(e));
     }
+    // we compensate scroll manually on prepend (Safari has no scroll anchoring);
+    // disable the native kind so anchoring browsers don't compensate twice
+    this.chronEl.style.overflowAnchor = "none";
   }
 
   setTheme(t: Theme): void {
@@ -56,6 +59,24 @@ export class Panels {
     if (kind === "tribe") this.show({ kind: "tribe", id: Number(id) });
     if (kind === "kin") this.show({ kind: "kin", id: Number(id) });
     if (kind === "settlement") this.show({ kind: "settlement", id: Number(id) });
+    this.centerOnShown();
+  }
+
+  /** pan the map to whatever the inspect card now shows */
+  private centerOnShown(): void {
+    const world = this.world();
+    const sel = this.shown;
+    if (!world || !sel) return;
+    if (sel.kind === "kin") {
+      const kin = world.kin.get(sel.id);
+      if (kin) this.onCenter(kin.x, kin.y);
+    } else if (sel.kind === "settlement") {
+      const s = world.settlements.get(sel.id);
+      if (s) this.onCenter(s.x, s.y);
+    } else if (sel.kind === "tribe") {
+      const t = world.tribes.get(sel.id);
+      if (t) this.onCenter(t.homeX, t.homeY);
+    }
   }
 
   /** returns true if a new chapter appeared (for the tab badge) */
@@ -64,6 +85,8 @@ export class Panels {
     if (!world) return false;
     const chapters = world.chronicle;
     if (chapters.length === this.renderedChapters) return false;
+    const scrolled = this.chronEl.scrollTop > 8;
+    const prevHeight = this.chronEl.scrollHeight;
     for (let i = this.renderedChapters; i < chapters.length; i++) {
       const ch = chapters[i];
       const el = document.createElement("article");
@@ -77,6 +100,7 @@ export class Panels {
       this.chronEl.prepend(el);
     }
     while (this.chronEl.children.length > 60) this.chronEl.lastElementChild?.remove();
+    if (scrolled) this.chronEl.scrollTop += this.chronEl.scrollHeight - prevHeight;
     this.renderedChapters = chapters.length;
     return true;
   }
@@ -142,7 +166,7 @@ export class Panels {
     ).length;
     return (
       `<div class="card"><h3 class="card-title">${esc(s.name)}</h3>` +
-      `<div class="card-sub">${esc(s.tier)} of ${this.tribeLink(world, s.tribeId)}</div>` +
+      `<div class="card-sub">${s.sacked ? "sacked ruin" : esc(s.tier)} of ${this.tribeLink(world, s.tribeId)}</div>` +
       `<dl class="kv">` +
       `<dt>founded</dt><dd>Year ${Math.floor(s.foundedTick / DAYS_PER_YEAR) + 1}</dd>` +
       `<dt>nearby kin</dt><dd>${pop}</dd>` +
@@ -168,7 +192,7 @@ export class Panels {
       `<div class="card-sub">${t.extinct ? "extinct tribe" : `${members.length} living kin`}</div>` +
       `<dl class="kv">` +
       (chief
-        ? `<dt>chief</dt><dd><span class="linklike" data-sel="kin:${chief.id}">${esc(chief.name)}</span></dd>`
+        ? `<dt>${chief.alive ? "chief" : "last chief"}</dt><dd><span class="linklike" data-sel="kin:${chief.id}">${chief.alive ? "" : "† "}${esc(chief.name)}</span></dd>`
         : "") +
       `<dt>gods</dt><dd>${gods || "none yet"}</dd>` +
       `<dt>arts</dt><dd>${t.techs.map(esc).join(", ") || "none"}</dd>` +
@@ -243,8 +267,16 @@ export class Panels {
     c.width = rect.width * dpr;
     c.height = rect.height * dpr;
     const ctx = c.getContext("2d")!;
-    const samples = world.stats;
-    const maxPop = Math.max(...samples.map((s) => s.population), 10);
+    // Downsample: stats grow forever (one sample per in-world month), and both a
+    // spread-based max and a one-segment-per-sample path would eventually blow up
+    // long runs. ~240 points is denser than the canvas can show anyway.
+    const all = world.stats;
+    const stride = Math.max(1, Math.ceil(all.length / 240));
+    const samples: typeof all = [];
+    for (let i = 0; i < all.length; i += stride) samples.push(all[i]);
+    if (samples[samples.length - 1] !== all[all.length - 1]) samples.push(all[all.length - 1]);
+    let maxPop = 10;
+    for (const s of samples) if (s.population > maxPop) maxPop = s.population;
     const px = (i: number) => (i / (samples.length - 1)) * c.width;
     const py = (v: number) => c.height - (v / maxPop) * (c.height - 6) - 3;
 

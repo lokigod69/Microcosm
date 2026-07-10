@@ -15,6 +15,16 @@ describe("simulation determinism", () => {
     expect(first.chronicle).toEqual(second.chronicle);
   });
 
+  // seed 0 is the PRNG-seeding edge case; 7 is the README's showcase world
+  for (const seed of [0, 7]) {
+    it(`replays seed ${seed} with identical events and chronicle text`, () => {
+      const first = run(seed, 1800);
+      const second = run(seed, 1800);
+      expect(first.events).toEqual(second.events);
+      expect(first.chronicle).toEqual(second.chronicle);
+    });
+  }
+
   it("separates different seeds", () => {
     const first = run(41, 900);
     const second = run(42, 900);

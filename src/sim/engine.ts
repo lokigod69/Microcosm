@@ -159,6 +159,13 @@ export function createWorld(seed: number): World {
     weather: { drought: false, droughtUntil: 0, harshWinter: false, stormToday: false },
     stats: [],
     streams,
+    caches: {
+      cultureCursor: 0,
+      tradedPairs: new Set(),
+      alliedPairs: new Set(),
+      plagues: new Map(),
+      seenKinds: new Set(),
+    },
     counters: { kin: 1, tribe: 1, settlement: 1, god: 1, myth: 1, event: 1, war: 1 },
   };
   initializeBands(world);

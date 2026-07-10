@@ -8,6 +8,7 @@ import {
   type SettlementTier,
   type Tribe,
   type World,
+  type WorldEvent,
 } from "./types";
 
 const ADULT_AGE = 16 * DAYS_PER_YEAR;
@@ -120,7 +121,7 @@ function formBands(world: World): void {
   }
 }
 
-function updateCulture(world: World, tribe: Tribe, members: readonly Kin[]): void {
+function updateCulture(tribe: Tribe, members: readonly Kin[], fresh: readonly WorldEvent[]): void {
   const target = cultureFrom(members);
   const cultureKeys: (keyof Culture)[] = [
     "aggression",
@@ -133,10 +134,10 @@ function updateCulture(world: World, tribe: Tribe, members: readonly Kin[]): voi
     tribe.culture[key] += (target[key] - tribe.culture[key]) * CULTURE_DRIFT;
   }
 
-  // Shocks are intentionally small and applied once, on the event's own tick.
-  for (let i = world.events.length - 1; i >= 0; i--) {
-    const event = world.events[i];
-    if (event.tick < world.tick) break;
+  // Shocks are intentionally small and applied exactly once per event: `fresh`
+  // is the slice past the culture cursor, so events emitted by systems that run
+  // after this one (contact, religion) land here on the following tick.
+  for (const event of fresh) {
     if (!event.tribeIds.includes(tribe.id)) continue;
     if (event.kind === "raid" || event.kind === "war.start") {
       tribe.culture.aggression = clamp01(tribe.culture.aggression + 0.006);
@@ -165,7 +166,7 @@ function chooseChief(members: readonly Kin[]): Kin | null {
 
 function updateChief(world: World, tribe: Tribe, members: readonly Kin[]): boolean {
   const oldChief = tribe.chiefId === null ? null : world.kin.get(tribe.chiefId);
-  if (oldChief?.alive) return false;
+  if (oldChief?.alive && oldChief.tribeId === tribe.id) return false;
   const candidates = members
     .filter((kin) => kin.ageDays >= ADULT_AGE)
     .sort((a, b) => {
@@ -274,7 +275,10 @@ function splitTribe(world: World, parent: Tribe, members: Kin[], contested = fal
   };
   child.name = makeName(world, child, "tribe");
   parent.relations[id] = 0.1;
+  const migrantIds = new Set(child.memberIds);
   for (const kin of migrants) kin.tribeId = id;
+  parent.memberIds = parent.memberIds.filter((memberId) => !migrantIds.has(memberId));
+  if (parent.chiefId !== null && migrantIds.has(parent.chiefId)) parent.chiefId = null;
   world.tribes.set(id, child);
   emit(world, "tribe.split", {
     tribeIds: [parent.id, id],
@@ -322,6 +326,8 @@ function absorbExtinct(world: World, extinct: Tribe): void {
 /** Per-tick band formation, cultural drift, settlement, leadership and split system. */
 export function updateTribes(world: World): void {
   formBands(world);
+  const fresh = world.events.slice(world.caches.cultureCursor);
+  world.caches.cultureCursor = world.events.length;
   const tribeIds = [...world.tribes.keys()].sort((a, b) => a - b);
   for (const id of tribeIds) {
     const tribe = world.tribes.get(id)!;
@@ -335,7 +341,7 @@ export function updateTribes(world: World): void {
     const home = centroid(members);
     tribe.homeX += (home.x - tribe.homeX) * 0.01;
     tribe.homeY += (home.y - tribe.homeY) * 0.01;
-    updateCulture(world, tribe, members);
+    updateCulture(tribe, members, fresh);
     const contested = updateChief(world, tribe, members);
     updateSettlement(world, tribe, members);
     if (members.length >= SPLIT_POPULATION || (contested && members.length >= 20)) {

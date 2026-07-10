@@ -324,8 +324,14 @@ function syncretism(world: World): void {
 /** Spiritual attribution, promotion, rites, syncretism and myth birth. */
 export function updateReligion(world: World): void {
   // Snapshot prevents the events emitted by this system from recursively becoming
-  // causes during the same tick.
-  const currentEvents = world.events.filter((event) => event.tick === world.tick);
+  // causes during the same tick. Ticks append monotonically, so today's events
+  // are a suffix of the log.
+  const currentEvents: WorldEvent[] = [];
+  for (let i = world.events.length - 1; i >= 0; i--) {
+    if (world.events[i].tick !== world.tick) break;
+    currentEvents.push(world.events[i]);
+  }
+  currentEvents.reverse();
   attributeEvents(world, currentEvents);
   heroAndDisasterMyths(world, currentEvents);
   holdRites(world);

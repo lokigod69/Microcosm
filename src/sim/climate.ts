@@ -9,6 +9,12 @@ function affectedTribes(world: World): number[] {
     .map((tribe) => tribe.id);
 }
 
+function livingPopulation(world: World): number {
+  let population = 0;
+  for (const kin of world.kin.values()) if (kin.alive) population++;
+  return population;
+}
+
 function randomLandPosition(world: World): { x: number; y: number } | null {
   const rng = world.streams.climate;
   for (let attempt = 0; attempt < 64; attempt++) {
@@ -30,6 +36,7 @@ export function updateWeather(world: World): void {
   const rng = world.streams.climate;
   const season = seasonOf(world.tick);
   const tribes = affectedTribes(world);
+  const population = livingPopulation(world);
   const offset = (world.seed >>> 0) % 1733;
 
   if (world.weather.drought && world.tick >= world.weather.droughtUntil) {
@@ -51,7 +58,7 @@ export function updateWeather(world: World): void {
     world.weather.droughtUntil = world.tick + duration;
     emit(world, "omen.drought", {
       tribeIds: tribes,
-      data: { duration, populationAffected: tribes.length },
+      data: { duration, populationAffected: population },
     });
   }
 
@@ -63,7 +70,7 @@ export function updateWeather(world: World): void {
   if (world.weather.stormToday) {
     emit(world, "omen.storm", {
       tribeIds: tribes,
-      data: { harsh: rng.chance(0.18), populationAffected: tribes.length },
+      data: { harsh: rng.chance(0.18), populationAffected: population },
     });
   }
 
@@ -85,7 +92,7 @@ export function updateWeather(world: World): void {
     emit(world, "omen.earthquake", {
       tribeIds: tribes,
       pos,
-      data: { populationAffected: tribes.length, magnitude: 4 + rng.int(5) },
+      data: { populationAffected: population, magnitude: 4 + rng.int(5) },
     });
   }
 }

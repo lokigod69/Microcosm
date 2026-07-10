@@ -351,6 +351,15 @@ export interface World {
   weather: Weather;
   stats: StatSample[]; // sampled monthly
   streams: Streams;
+  /** Incremental caches over the append-only event log. Every entry is derived
+   *  deterministically at emit time so hot paths never rescan the whole log. */
+  caches: {
+    cultureCursor: number; // first event index updateTribes has not yet applied as a culture shock
+    tradedPairs: Set<string>; // "a:b" (a < b) pairs that ever opened trade
+    alliedPairs: Set<string>; // "a:b" pairs with a currently active alliance
+    plagues: Map<number, { start: number; deaths: number }>; // tribeId -> active plague
+    seenKinds: Set<EventKind>; // event kinds emitted at least once (novelty weighting)
+  };
   counters: {
     kin: number;
     tribe: number;

@@ -20,7 +20,7 @@ export const STREAM_NAMES: StreamName[] = [
   "chronicle",
 ];
 
-function fnv1a(str: string): number {
+export function fnv1a(str: string): number {
   let h = 0x811c9dc5;
   for (let i = 0; i < str.length; i++) {
     h ^= str.charCodeAt(i);

@@ -4,6 +4,12 @@
   "version": "1.0.0",
   "type": "module",
   "description": "A pocket universe that writes its own mythology",
+  "license": "MIT",
+  "author": "lokigod69",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lokigod69/Microcosm.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
