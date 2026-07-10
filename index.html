@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MICROCOSM</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🜨</text></svg>" />
+    <link rel="stylesheet" href="./styles/base.css" />
+    <link rel="stylesheet" href="./styles/themes.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header id="topbar">
+        <div class="tb-left">
+          <span id="world-name" class="world-name">MICROCOSM</span>
+          <span id="world-seed" class="world-seed"></span>
+        </div>
+        <div class="tb-center">
+          <span id="world-date" class="world-date"></span>
+        </div>
+        <div class="tb-right">
+          <div class="time-controls" role="group" aria-label="Time controls">
+            <button id="btn-pause" class="tc-btn" title="Pause/Play (Space)">⏸</button>
+            <button class="tc-btn speed" data-speed="1" title="1× (1)">1×</button>
+            <button class="tc-btn speed" data-speed="4" title="4× (2)">4×</button>
+            <button class="tc-btn speed" data-speed="16" title="16× (3)">16×</button>
+            <button class="tc-btn speed" data-speed="60" title="60× (4)">60×</button>
+          </div>
+          <button id="btn-theme" class="tc-btn theme-btn" title="Cycle design (T)">◐</button>
+        </div>
+      </header>
+
+      <main id="stage">
+        <div id="map-wrap">
+          <canvas id="map"></canvas>
+          <div id="map-hint" class="map-hint">drag to pan · wheel to zoom · click to inspect</div>
+        </div>
+
+        <aside id="panel">
+          <nav id="tabs" role="tablist">
+            <button class="tab active" data-tab="chronicle" role="tab">Chronicle<span id="chron-badge" class="badge" hidden></span></button>
+            <button class="tab" data-tab="inspect" role="tab">Inspect</button>
+            <button class="tab" data-tab="almanac" role="tab">Almanac</button>
+            <button class="tab" data-tab="lexicon" role="tab">Lexicon</button>
+          </nav>
+          <div id="panel-body">
+            <section id="tab-chronicle" class="tab-page active"></section>
+            <section id="tab-inspect" class="tab-page"><p class="empty">Click a kin, settlement, or tile on the map.</p></section>
+            <section id="tab-almanac" class="tab-page"></section>
+            <section id="tab-lexicon" class="tab-page"></section>
+          </div>
+        </aside>
+      </main>
+
+      <div id="genesis" class="genesis-overlay">
+        <div class="genesis-card">
+          <h1 class="genesis-title">MICROCOSM</h1>
+          <p class="genesis-sub">a pocket universe that writes its own mythology</p>
+          <div class="genesis-row">
+            <label for="seed-input" class="genesis-label">seed</label>
+            <input id="seed-input" type="text" inputmode="numeric" autocomplete="off" />
+            <button id="btn-shuffle" class="tc-btn" title="Random seed">⤳</button>
+          </div>
+          <button id="btn-begin" class="begin-btn">Begin</button>
+          <p class="genesis-note">Same seed → same world, same words, same gods. Every time.</p>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

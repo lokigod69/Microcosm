@@ -1,0 +1,142 @@
+/* MICROCOSM — the three designs. Same geometry, different soul.
+   Canvas map palettes live in src/ui/themes.ts and mirror these moods. */
+
+/* ============ 1. OBSERVATORY — dark glass; a specimen universe ============ */
+:root, [data-theme="observatory"] {
+  --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-ui);
+  --font-observer: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  --font-myth: "New York", "Iowan Old Style", Georgia, serif;
+  --myth-style: italic;
+  --display-tracking: -0.02em;
+  --label-tracking: 0.02em;
+  --label-case: none;
+
+  --bg: #0b0e16;
+  --map-void: #060810;
+  --text: #e8ecf5;
+  --text-soft: #b6bdcf;
+  --text-dim: #767e93;
+
+  --chrome-bg: rgba(16, 20, 32, 0.55);
+  --chrome-filter: blur(20px) saturate(160%);
+  --chrome-border: 1px solid rgba(255, 255, 255, 0.07);
+  --chrome-edge: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --panel-bg: rgba(13, 17, 28, 0.62);
+  --panel-filter: blur(24px) saturate(150%);
+  --panel-solid: #131826;
+
+  --hover: rgba(255, 255, 255, 0.06);
+  --hairline: rgba(255, 255, 255, 0.07);
+  --hairline-strong: rgba(255, 255, 255, 0.14);
+  --scrim: rgba(4, 6, 12, 0.6);
+
+  --accent: #6ee7ff;
+  --accent-strong: #7deaff;
+  --accent-weak: rgba(110, 231, 255, 0.12);
+  --accent2: #ffb454;
+  --on-accent: #06222c;
+}
+
+/* ============ 2. FIELD JOURNAL — paper & ink; a naturalist's notebook ============ */
+[data-theme="journal"] {
+  --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Charter", "Iowan Old Style", Georgia, serif;
+  --font-observer: var(--font-ui);
+  --font-myth: "Charter", "Iowan Old Style", Georgia, serif;
+  --myth-style: italic;
+  --display-tracking: -0.01em;
+  --label-tracking: 0.07em;
+  --label-case: uppercase;
+
+  --bg: #f6f2e9;
+  --map-void: #ece6d8;
+  --text: #2a2620;
+  --text-soft: #4c463c;
+  --text-dim: #8b8271;
+
+  --chrome-bg: rgba(246, 242, 233, 0.82);
+  --chrome-filter: blur(14px) saturate(120%);
+  --chrome-border: 1px solid rgba(42, 38, 32, 0.14);
+  --chrome-edge: none;
+  --panel-bg: rgba(250, 247, 240, 0.88);
+  --panel-filter: blur(10px);
+  --panel-solid: #faf7f0;
+
+  --hover: rgba(42, 38, 32, 0.06);
+  --hairline: rgba(42, 38, 32, 0.1);
+  --hairline-strong: rgba(42, 38, 32, 0.24);
+  --scrim: rgba(236, 230, 216, 0.55);
+
+  --accent: #3f6d4e;
+  --accent-strong: #345e43;
+  --accent-weak: rgba(63, 109, 78, 0.12);
+  --accent2: #c98a2d;
+  --on-accent: #f6f2e9;
+}
+
+/* ============ 3. ILLUMINATED — parchment scriptorium; the chronicle is scripture ============ */
+[data-theme="illuminated"] {
+  --font-ui: "Iowan Old Style", "Palatino", "Book Antiqua", Georgia, serif;
+  --font-display: var(--font-ui);
+  --font-observer: var(--font-ui);
+  --font-myth: var(--font-ui);
+  --myth-style: normal;
+  --display-tracking: 0em;
+  --label-tracking: 0.09em;
+  --label-case: uppercase;
+
+  --bg: #e8d9b5;
+  --map-void: #ddcda6;
+  --text: #3b2f1e;
+  --text-soft: #55452c;
+  --text-dim: #8d7a56;
+
+  --chrome-bg: rgba(87, 31, 38, 0.94);
+  --chrome-filter: none;
+  --chrome-border: 1px solid #b98a2f;
+  --chrome-edge: inset 0 -2px 0 rgba(185, 138, 47, 0.5);
+  --panel-bg: rgba(238, 224, 189, 0.96);
+  --panel-filter: none;
+  --panel-solid: #eee0bd;
+
+  --hover: rgba(87, 31, 38, 0.08);
+  --hairline: rgba(87, 31, 38, 0.16);
+  --hairline-strong: rgba(87, 31, 38, 0.34);
+  --scrim: rgba(59, 47, 30, 0.45);
+
+  --accent: #571f26;
+  --accent-strong: #6d2730;
+  --accent-weak: rgba(87, 31, 38, 0.1);
+  --accent2: #b98a2f;
+  --on-accent: #f3e8cd;
+}
+
+/* Illuminated: chrome text must be parchment-light on the burgundy band */
+[data-theme="illuminated"] #topbar { color: #f3e8cd; }
+[data-theme="illuminated"] #topbar .world-seed,
+[data-theme="illuminated"] #topbar .world-date { color: rgba(243, 232, 205, 0.75); }
+[data-theme="illuminated"] #topbar .tc-btn { color: rgba(243, 232, 205, 0.8); }
+[data-theme="illuminated"] #topbar .tc-btn:hover { background: rgba(243, 232, 205, 0.12); color: #f3e8cd; }
+[data-theme="illuminated"] #topbar .tc-btn.on { background: rgba(185, 138, 47, 0.32); color: #ffd98a; }
+
+/* Illuminated: double-rule borders instead of shadows */
+[data-theme="illuminated"] #panel { border-left: 3px double #b98a2f; }
+[data-theme="illuminated"] .genesis-card {
+  border: 3px double #b98a2f;
+  box-shadow: 0 24px 80px rgba(59, 47, 30, 0.4);
+}
+[data-theme="illuminated"] .voice-myth { border-left-color: #b98a2f; }
+
+/* Journal: observer voice as numbered field notes */
+[data-theme="journal"] .voice-observer p { color: #4c463c; }
+
+@media (prefers-contrast: more) {
+  :root, [data-theme="observatory"], [data-theme="journal"], [data-theme="illuminated"] {
+    --chrome-filter: none;
+    --panel-filter: none;
+  }
+  [data-theme="observatory"] { --chrome-bg: #10141f; --panel-bg: #0e1220; }
+  [data-theme="journal"] { --chrome-bg: #f6f2e9; --panel-bg: #faf7f0; }
+  [data-theme="illuminated"] { --panel-bg: #eee0bd; }
+}
