@@ -3,7 +3,8 @@
 ## FOR YOU
 1. Play it: `cd ~/Coding/MICROCOSM && npm run dev` — pick a seed, hit Begin, set 60×,
    read the Chronicle as it writes itself. Press `T` to cycle the three designs.
-2. Or play the deployed build (GitHub Pages link in the repo description).
+2. Publish (agents may not create repos): `cd ~/Coding/MICROCOSM && gh repo create
+   lokigod69/MICROCOSM --public --source . --push` — then any session can enable Pages.
 3. Tell the next session your taste verdict: pacing? god abundance? population feel?
 
 ## PASTE THIS
