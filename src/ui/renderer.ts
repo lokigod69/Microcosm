@@ -73,6 +73,14 @@ export class MapRenderer {
   private rawX = 0;
   private rawY = 0;
 
+  // two-finger pinch: zoom anchored to the moving midpoint, so one gesture
+  // pans and zooms at once; a surviving finger inherits the camera as a drag
+  private pointers = new Map<number, { x: number; y: number }>();
+  private pinchIds: [number, number] | null = null;
+  private pinchMidX = 0;
+  private pinchMidY = 0;
+  private pinchDist = 0;
+
   selection: Selection = null;
   onSelect: (sel: Selection) => void = () => {};
 
@@ -173,6 +181,12 @@ export class MapRenderer {
 
     c.addEventListener("pointerdown", (e) => {
       c.setPointerCapture(e.pointerId);
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (this.pinchIds) return; // third+ finger: held, but the pinch pair owns the camera
+      if (this.pointers.size === 2) {
+        this.beginPinch();
+        return;
+      }
       this.dragging = true;
       this.dragPointer = e.pointerId;
       this.lastPX = e.clientX;
@@ -194,6 +208,17 @@ export class MapRenderer {
     });
 
     c.addEventListener("pointermove", (e) => {
+      const pt = this.pointers.get(e.pointerId);
+      if (pt) {
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+      }
+      if (this.pinchIds) {
+        if (e.pointerId === this.pinchIds[0] || e.pointerId === this.pinchIds[1]) {
+          this.pinchMove();
+        }
+        return;
+      }
       if (!this.dragging || e.pointerId !== this.dragPointer) return;
       const dx = (e.clientX - this.lastPX) * this.dpr;
       const dy = (e.clientY - this.lastPY) * this.dpr;
@@ -220,6 +245,34 @@ export class MapRenderer {
     });
 
     const release = (e: PointerEvent) => {
+      this.pointers.delete(e.pointerId);
+      if (this.pinchIds) {
+        if (e.pointerId !== this.pinchIds[0] && e.pointerId !== this.pinchIds[1]) return;
+        this.pinchIds = null;
+        if (this.pointers.size >= 2) {
+          this.beginPinch();
+          return;
+        }
+        const survivor = this.pointers.keys().next();
+        if (!survivor.done) {
+          // hand the camera to the remaining finger: pinch flows into a 1:1 drag
+          const id = survivor.value;
+          const p = this.pointers.get(id)!;
+          this.dragging = true;
+          this.dragPointer = id;
+          this.lastPX = p.x;
+          this.lastPY = p.y;
+          this.movedSinceDown = Number.POSITIVE_INFINITY; // a pinch is never a tap
+          this.tracker.reset();
+          this.tracker.add(p.x, p.y);
+          this.rawX = this.camX.value;
+          this.rawY = this.camY.value;
+        } else {
+          c.classList.remove("dragging");
+          this.clampTargets();
+        }
+        return;
+      }
       if (!this.dragging || e.pointerId !== this.dragPointer) return;
       this.dragging = false;
       c.classList.remove("dragging");
@@ -266,6 +319,57 @@ export class MapRenderer {
       },
       { passive: false },
     );
+  }
+
+  private beginPinch(): void {
+    const it = this.pointers.keys();
+    this.pinchIds = [it.next().value as number, it.next().value as number];
+    this.dragging = false;
+    this.canvas.classList.add("dragging");
+    // grab: kill momentum, the fingers own the camera now (interruptible always)
+    this.camX.setTarget(this.camX.value);
+    this.camY.setTarget(this.camY.value);
+    this.camX.velocity = 0;
+    this.camY.velocity = 0;
+    [this.pinchMidX, this.pinchMidY, this.pinchDist] = this.pinchGeom();
+  }
+
+  private pinchGeom(): [number, number, number] {
+    const [a, b] = this.pinchIds!;
+    const p = this.pointers.get(a)!;
+    const q = this.pointers.get(b)!;
+    return [
+      (p.x + q.x) / 2,
+      (p.y + q.y) / 2,
+      Math.max(1, Math.hypot(q.x - p.x, q.y - p.y)),
+    ];
+  }
+
+  private pinchMove(): void {
+    const rect = this.canvas.getBoundingClientRect();
+    const [mx, my, d] = this.pinchGeom();
+    // the world point under the previous midpoint stays pinned under the current
+    // one, so a single gesture zooms and pans together with no seam
+    const [wx, wy] = this.toWorld(
+      (this.pinchMidX - rect.left) * this.dpr,
+      (this.pinchMidY - rect.top) * this.dpr,
+    );
+    this.scale = Math.max(
+      this.minScale,
+      Math.min(this.maxScale, this.scale * (d / this.pinchDist)),
+    );
+    const sx = (mx - rect.left) * this.dpr;
+    const sy = (my - rect.top) * this.dpr;
+    this.camX.value = wx - (sx - this.canvas.width / 2) / this.scale;
+    this.camY.value = wy - (sy - this.canvas.height / 2) / this.scale;
+    this.camX.setTarget(this.camX.value);
+    this.camY.setTarget(this.camY.value);
+    this.clampTargets();
+    this.camX.value = this.camX.target;
+    this.camY.value = this.camY.target;
+    this.pinchMidX = mx;
+    this.pinchMidY = my;
+    this.pinchDist = d;
   }
 
   private click(e: PointerEvent): void {
