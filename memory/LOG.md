@@ -2,6 +2,30 @@
 Newest first. Append-only — entries are never rewritten.
 When this file exceeds ~300 lines, move the oldest half to `archive/log-2026.md`.
 
+## 2026-07-12 — Finalize: git identity rewrite + pinch-zoom (Fable, kept — taste-sensitive gesture)
+- **Changed:** All 4 commits rewritten from auto-derived `Quan Do <saya@Quans-Mac-mini.local>`
+  to `lokigod69 <laqy69@gmail.com>` (git filter-branch; identity also set in global git
+  config — it had never been set). Pinch-zoom added to the map camera
+  (src/ui/renderer.ts): two fingers zoom around their moving midpoint (pan+zoom in one
+  gesture), lifting one finger hands the camera to the survivor as a 1:1 drag, a pinch
+  never registers as a tap; map hint now says "pinch or wheel to zoom".
+- **Verified:** 13/13 vitest green; build clean; headless CDP touch-event run against the
+  built bundle: pinch-out magnifies ~4.4× (terrain color-run length 5.4→23.6), pinch-in
+  returns to baseline (5.7), single-finger pan works after a pinch, 0 page errors.
+  Harness gotcha: touch points must land inside #map (480px wide) or Chrome delivers only
+  one pointerdown — first FAIL was the test's fault, not the app's.
+- **Open:** force-push of rewritten history blocked by permission classifier — human must
+  approve `git fetch origin && git push --force-with-lease origin main`. Until then GitHub
+  still shows the old identity and lacks the pinch commit.
+
+## 2026-07-10 (later) — Published + four-agent adversarial review (recorded retroactively; that session updated NEXT_STEP but skipped this log)
+- Pushed v1 to github.com/lokigod69/Microcosm after human created the repo. 3× Opus +
+  codex review: 29 raw findings, all verified before fixing. Headliners: almanac sparkline
+  RangeError on long runs froze the whole rAF loop; culture shocks never applied (event
+  ordering); war victors judged from pre-casualty populations; event-log rescans replaced
+  with incremental caches (flat ~20 µs/tick vs degrading 44→73). Tests 11→13. Baseline
+  75-year worktree re-run proved fixes changed no world trajectory.
+
 ## 2026-07-10 — v1 built end-to-end in one session (Fable orchestrating, codex executing)
 - **Changed:** Everything. Specs (docs/SIMULATION.md, docs/DESIGNS.md) + contract files
   (types/rng/time) by Fable; engine + chronicler draft + tests by codex (GPT-5.x, 14 min,

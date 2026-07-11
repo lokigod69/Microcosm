@@ -1,18 +1,23 @@
-# BOARD — MICROCOSM — updated 2026-07-10 (session end)
+# BOARD — MICROCOSM — updated 2026-07-12 (finalize session)
 
 ## ⚠️ WAITING ON YOU
-- main: create the GitHub repo (permission system blocks agents from creating repos) —
-  `cd ~/Coding/MICROCOSM && gh repo create lokigod69/MICROCOSM --public --source . --push` (since 2026-07-10)
-- main: play-test the shipped v1 and give a taste verdict (since 2026-07-10)
+- main: approve the force-push of the rewritten history + pinch commit —
+  `cd ~/Coding/MICROCOSM && git fetch origin && git push --force-with-lease origin main`
+  (since 2026-07-12; until then GitHub shows the old committer identity)
+- main: play-test v1 and give a taste verdict (since 2026-07-10)
 
 ## Workstreams
 | Workstream | Phase/Gate | Last done | Next | State |
 |---|---|---|---|---|
-| main | v1 BUILT (2 local commits) | engine+chronicle+UI+3 themes built, tested, committed | human creates repo → push; taste-tuning from feedback | 🟡 paused (awaiting human) |
+| main | v1 SHIPPED + reviewed + finalized | identity rewrite, pinch-zoom (72360c1) | human force-pushes → taste-tuning pass (population decay first) | 🟡 paused (awaiting human) |
 
 ## Recently finished (last 5)
-- 2026-07-10 v1 built & committed locally (push blocked: repo creation needs the human)
-- 2026-07-10 e2e verified: 23 in-world years headless, 0 errors, 3 themes screenshotted
-- 2026-07-10 chronicle voice layer rewritten (Fable) after codex draft review
-- 2026-07-10 engine + tests landed (codex, 14 min, green first try)
-- 2026-07-10 project bootstrapped: brain, protocol, specs
+- 2026-07-12 pinch-zoom on touch: midpoint-anchored, flows into drag; CDP-verified headless
+- 2026-07-12 all commits re-authored to lokigod69 <laqy69@gmail.com>; global git identity set
+- 2026-07-10 four-agent adversarial review: 29 findings verified, all confirmed ones fixed; 13 tests
+- 2026-07-10 published to github.com/lokigod69/Microcosm (human created repo, agent pushed)
+- 2026-07-10 v1 built & verified end-to-end (engine, chronicler, UI, 3 themes)
+
+## Note
+2026-07-12: board was stale (still showed "awaiting repo creation" from before the
+publish+review session); reconstructed from NEXT_STEP + git log per Iron Rule 5.
