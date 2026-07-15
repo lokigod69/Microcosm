@@ -8,3 +8,4 @@
 2026-07-12T01:05 | main | git identity: global config set (lokigod69 <laqy69@gmail.com>), all 4 commits re-authored via filter-branch | evidence: git log %an/%ae; force-push pending human approval (classifier block)
 2026-07-12T01:20 | main | pinch-zoom on touch (renderer.ts): midpoint-anchored zoom+pan, survivor-finger drag handoff, pinch-never-taps; hint text updated | evidence: 13/13 vitest, build clean, CDP touch run: runlen 5.4->23.6->5.7, pan-after-pinch ok, 0 page errors | commit 72360c1
 2026-07-12T01:30 | main | checkpoint: brain save, NEXT_STEP/BOARD refreshed (board was stale from review session; reconstructed) | evidence: protocol/ + memory/ diffs
+2026-07-12T01:40 | main | force-pushed rewritten history + pinch-zoom to origin/main (human approved via explicit confirm) | evidence: git log origin/main matches local, 7dd714d HEAD
